@@ -1,6 +1,6 @@
-from collections import deque
 import os
 import random
+from collections import deque
 
 import gym
 import numpy as np
@@ -37,6 +37,7 @@ class DQN(nn.Module):
         x = F.relu(self.conv_2(x))
         x = F.relu(self.conv_3(x))
         x = F.relu(self.linear_1(x.view(x.size(0), -1)))
+        # not add softmax at the last layer.
         x = self.linear_2(x)
         return x
 
@@ -58,7 +59,8 @@ class DQNAgent():
         self.epsilon = INITIAL_EPSILON
 
         self.criterion = nn.MSELoss(size_average=True)
-        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=LEARNING_RATE)
+        self.optimizer = torch.optim.Adam(
+            self.net.parameters(), lr=LEARNING_RATE)
 
         self.init_net()
         self.update_target()
@@ -66,7 +68,7 @@ class DQNAgent():
     def init_net(self):
         if os.path.exists('params.pkl'):
             print('Parameters exists. Init agent from exists parameters...')
-            # if we already have a model, then init our agent using the exist one.
+            # if we already have a model, then initialize our agent using the exist one.
             self.net.load_state_dict(torch.load('params.pkl'))
         else:
             print('Create new parameters...')
@@ -92,7 +94,7 @@ class DQNAgent():
         if self.epsilon > FINAL_EPSILON:
             self.epsilon -= EPSILON_DECAY
 
-        minibatch = random.sample(self.memory.index_buffer, BATCH_SIZE)
+        minibatch = random.sample(self.memory.sarsd_buffer, BATCH_SIZE)
 
         states = [self.memory.get(d[0]) for d in minibatch]
         actions = [d[1] for d in minibatch]
@@ -112,6 +114,8 @@ class DQNAgent():
         preds = torch.sum(preds.mul(one_hot_action.to(self.device)), dim=1).view(-1, 1)
 
         next_states = torch.Tensor(next_states).to(self.device)
+        # use the prediction of the target net rather than current net to
+        # keep the training process stable.
         next_preds = self.target_net(next_states)
 
         rewards = torch.Tensor(rewards).to(self.device)
@@ -127,6 +131,10 @@ class DQNAgent():
 
 
 class Memory():
+    '''A lot of memory will be used if we save the whole frame due to the same
+    frame is actually be saved 4 times, so we choose to just save the index
+    of each frame and construct the state when we need it.'''
+
     def __init__(self, max_memory):
         self.sarsd_buffer = deque(maxlen=max_memory)
         self.memory_dict = {}
@@ -148,7 +156,6 @@ class Memory():
 
     def get(self, index):
         index_list = self.get_index_list(index)
-        # print(index_list)
         frame0 = self.memory_dict[index_list[0]]
         frame1 = self.memory_dict[index_list[1]]
         frame2 = self.memory_dict[index_list[2]]
@@ -174,6 +181,7 @@ class Env():
         self.action_size = self.env.action_space.n
 
     def prepare(self, ob):
+        # the parameters are chosen for pong-v0 only.
         ob = ob[35:195]
         ob = ob[::2, ::2, 0]
         ob[ob == 144] = 0
@@ -206,6 +214,7 @@ class Info():
             self.running_reward = self.reward_sum
         else:
             self.running_reward = self.running_reward * 0.99 + self.reward_sum * 0.01
+        # record the training info.
         self.writer.add_scalars('rewards', {'current_r': self.reward_sum,
                                             'running_r': self.running_reward}, step)
         print('Step {:d} Episode {:d} Epsilon {:5.3f} Reward {:5.1f} Running mean {:7.3f}'.format(
