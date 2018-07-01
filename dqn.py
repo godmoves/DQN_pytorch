@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tensorboardX import SummaryWriter
 
 
 BATCH_SIZE = 32
@@ -171,7 +172,6 @@ class Env():
     def __init__(self, env_name):
         self.env = gym.make(env_name)
         self.action_size = self.env.action_space.n
-        # self.state = None
 
     def prepare(self, ob):
         ob = ob[35:195]
@@ -199,12 +199,15 @@ class Info():
     def __init__(self):
         self.running_reward = None
         self.reward_sum = 0
+        self.writer = SummaryWriter('log')
 
     def show(self, step, episode, epsilon):
         if self.running_reward is None:
             self.running_reward = self.reward_sum
         else:
             self.running_reward = self.running_reward * 0.99 + self.reward_sum * 0.01
+        self.writer.add_scalars('rewards', {'current_r': self.reward_sum,
+                                            'running_r': self.running_reward}, step)
         print('Step {:d} Episode {:d} Epsilon {:5.3f} Reward {:5.1f} Running mean {:7.3f}'.format(
             step, episode, epsilon, self.reward_sum, self.running_reward))
         self.reward_sum = 0
@@ -223,6 +226,7 @@ def main():
     while True:
         action = agent.get_action(frame_index)
 
+        # uncomment next line to check the agent while training
         # env.render()
         next_frame, reward, done = env.step(action)
         next_frame_index = agent.memory.register(next_frame)
