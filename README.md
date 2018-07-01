@@ -1,5 +1,5 @@
 # DQN pytorch
-A pytoch implement of DQN.
+A pytorch implement of DQN.
 
 ## Dependencies
 - python 3  
