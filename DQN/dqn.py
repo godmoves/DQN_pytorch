@@ -255,8 +255,7 @@ def main(args):
     agent = DQNAgent(env.action_size)
     info = Info()
 
-    frame = env.reset()
-    frame_index = agent.memory.register(frame)
+    frame_index = agent.memory.register(env.reset())
 
     if args.test:
         print('Running in test mode.')
@@ -312,8 +311,7 @@ def main(args):
 
             info.show(step, episode, agent.epsilon, args.test)
 
-            frame = env.reset()
-            frame_index = agent.memory.register(frame)
+            frame_index = agent.memory.register(env.reset())
 
 
 if __name__ == '__main__':
