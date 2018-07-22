@@ -1,4 +1,5 @@
-/params.pkl
-/log
-/dqn_test.py
-/test
+params.pkl
+params_*.pkl
+log
+dqn_test.py
+test

@@ -1,3 +1,4 @@
+import argparse
 import os
 import random
 from collections import deque
@@ -21,6 +22,8 @@ EPSILON_DECAY = (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE_STEPS
 
 OB_STEPS = 100000
 MAX_MEMORY = 100000
+
+MAX_TEST_EPISODE = 100
 
 
 class DQN(nn.Module):
@@ -46,7 +49,7 @@ class DQNAgent():
     def __init__(self, action_size):
         self.use_cuda = torch.cuda.is_available()
         if self.use_cuda:
-            print('CUDA enabled')
+            print('CUDA backend enabled.')
             self.device = torch.device('cuda')
         else:
             self.device = torch.device('cpu')
@@ -67,7 +70,7 @@ class DQNAgent():
 
     def init_net(self):
         if os.path.exists('params.pkl'):
-            print('Parameters exists. Init agent from exists parameters...')
+            print('Parameters exists.\nInit agent from exists parameters...')
             # if we already have a model, then initialize our agent using the exist one.
             self.net.load_state_dict(torch.load('params.pkl'))
         else:
@@ -91,6 +94,7 @@ class DQNAgent():
             return int(action)
 
     def train(self):
+        # recude the randomness of action.
         if self.epsilon > FINAL_EPSILON:
             self.epsilon -= EPSILON_DECAY
 
@@ -205,30 +209,53 @@ class Env():
 
 class Info():
     def __init__(self):
-        self.running_reward = None
         self.reward_sum = 0
+        self.running_reward = None
+        self.win_episode_count = 0
         self.writer = SummaryWriter('log')
 
-    def show(self, step, episode, epsilon):
+    def show(self, step, episode, epsilon, arg_test):
         if self.running_reward is None:
             self.running_reward = self.reward_sum
         else:
             self.running_reward = self.running_reward * 0.99 + self.reward_sum * 0.01
+
         # record the training info.
         self.writer.add_scalars('rewards', {'current_r': self.reward_sum,
                                             'running_r': self.running_reward}, step)
-        print('Step {:d} Episode {:d} Epsilon {:5.3f} Reward {:5.1f} Running mean {:7.3f}'.format(
-            step, episode, epsilon, self.reward_sum, self.running_reward))
+        if arg_test:
+            our_score = 21 if self.reward_sum > 0 else int(21 + self.reward_sum)
+            opp_score = int(21 - self.reward_sum) if self.reward_sum > 0 else 21
+
+            if self.reward_sum > 0:
+                # increase winning count if we win.
+                self.win_episode_count += 1
+
+            print('Step {:d}  Episode {:d}/{:d} (win/total)  Result {:d}:{:d} (opp:our)'.format(
+                step, self.win_episode_count, episode, opp_score, our_score))
+
+            if episode >= MAX_TEST_EPISODE:
+                exit()
+        else:
+            print('Step {:d} Episode {:d} Epsilon {:5.3f} Reward {:5.1f} Running mean {:7.3f}'.format(
+                step, episode, epsilon, self.reward_sum, self.running_reward))
+
+        # zero sum for next episode
         self.reward_sum = 0
 
 
-def main():
+def main(args):
     env = Env('Pong-v0')
     agent = DQNAgent(env.action_size)
     info = Info()
 
     frame = env.reset()
     frame_index = agent.memory.register(frame)
+
+    if args.test:
+        print('Running in test mode.')
+        # choose actions greedily when testing.
+        agent.epsilon = 0
 
     episode = 0
     step = 0
@@ -237,6 +264,7 @@ def main():
 
         # uncomment next line to check the agent while training
         # env.render()
+
         next_frame, reward, done = env.step(action)
         next_frame_index = agent.memory.register(next_frame)
 
@@ -248,19 +276,26 @@ def main():
 
         step += 1
 
-        if step > OB_STEPS:
+        if step > OB_STEPS and not args.test:
             agent.train()
 
         if done:
             episode += 1
-            agent.save_net()
-            agent.update_target()
 
-            info.show(step, episode, agent.epsilon)
+            if not args.test:
+                agent.save_net()
+                agent.update_target()
+
+            info.show(step, episode, agent.epsilon, args.test)
 
             frame = env.reset()
             frame_index = agent.memory.register(frame)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test', action='store_true', default=False,
+                        help='test the performance of current net')
+    args = parser.parse_args()
+
+    main(args)
