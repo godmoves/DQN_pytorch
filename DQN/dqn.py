@@ -4,6 +4,7 @@ import random
 from collections import deque
 
 import gym
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -91,6 +92,12 @@ class DQNAgent():
             y = self.net(state)
             action = torch.max(y, 1)[1]
             return int(action)
+
+    def get_all_actions(self, frame_index):
+        state = self.memory.get(frame_index).reshape(-1, 4, 80, 80)
+        state = torch.Tensor(state).to(self.device)
+        y = self.net(state)
+        return y.detach().cpu().numpy()
 
     def train(self):
         # recude the randomness of action.
@@ -256,13 +263,31 @@ def main(args):
         # choose actions greedily when testing.
         agent.epsilon = 0
 
+        if args.figure:
+            fig = plt.figure()
+            ax1 = fig.add_subplot(2, 1, 1)
+            ax2 = fig.add_subplot(2, 1, 2)
+            plt.ion()
+            max_q_list = deque(maxlen=300)
+
     episode = 0
     step = 0
     while True:
         action = agent.get_action(frame_index)
 
-        # uncomment next line to check the agent while training
-        # env.render()
+        if args.test and args.figure:
+            all_q = agent.get_all_actions(frame_index)[0]
+            ax1.bar(np.arange(env.action_size), all_q)
+
+            max_q = max(all_q)
+            max_q_list.append(max_q)
+            ax2.plot(max_q_list)
+
+            plt.pause(0.00001)
+            ax1.cla()
+            ax2.cla()
+
+            env.render()
 
         next_frame, reward, done = env.step(action)
         next_frame_index = agent.memory.register(next_frame)
@@ -295,6 +320,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--test', action='store_true', default=False,
                         help='test the performance of current net')
+    parser.add_argument('--figure', action='store_true', default=False,
+                        help='show q value figure while testing')
     args = parser.parse_args()
 
     main(args)
