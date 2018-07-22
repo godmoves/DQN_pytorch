@@ -18,7 +18,7 @@ original atari game most of the time. (After another 2M frames of training, I
 don't find big differences in the average reward. But according to the test,
 the agent's performance is much stable and it gets higher winrate against the
 ai in the original game.)
-![training](image/training.png)
+![training](image/dqn_training.png)
 
 ## Test
 Finally, I test the agent in 100 games and it wins 98 games:
