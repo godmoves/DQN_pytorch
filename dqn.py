@@ -47,8 +47,7 @@ class DQN(nn.Module):
 
 class DQNAgent():
     def __init__(self, action_size):
-        self.use_cuda = torch.cuda.is_available()
-        if self.use_cuda:
+        if torch.cuda.is_available():
             print('CUDA backend enabled.')
             self.device = torch.device('cuda')
         else:
@@ -71,7 +70,7 @@ class DQNAgent():
     def init_net(self):
         if os.path.exists('params.pkl'):
             print('Parameters exists.\nInit agent from exists parameters...')
-            # if we already have a model, then initialize our agent using the exist one.
+            # initialize our agent using the exist model if we have one.
             self.net.load_state_dict(torch.load('params.pkl'))
         else:
             print('Create new parameters...')
