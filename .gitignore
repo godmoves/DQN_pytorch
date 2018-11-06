@@ -1,4 +1,4 @@
-params_*.pkl
 log
 test
-DQN/params.pkl
+params.pkl
+__pycache__
