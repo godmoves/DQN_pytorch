@@ -24,16 +24,16 @@ class EpsilonGreedyActionSelector():
         self.epsilon_end = epsilon_end
         self.explore_steps = explore_steps
         self.step = 0
-        self.epsilon = self.cal_epsilon()
+        self.epsilon = self.calculate_epsilon()
 
-    def cal_epsilon(self):
+    def calculate_epsilon(self):
         epsilon = self.epsilon_start - (self.epsilon_start - self.epsilon_end) * self.step / self.explore_steps
         epsilon = max(self.epsilon_end, epsilon)
         return epsilon
 
     def action(self, score):
         self.step += 1
-        self.epsilon = self.cal_epsilon()
+        self.epsilon = self.calculate_epsilon()
 
         if np.random.uniform() < self.epsilon:
             return np.random.randint(self.action_size)

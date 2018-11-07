@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ofa.agent import DQNAgent
-from ofa.agent import Monitor
 from ofa.env import BasicRetroEnv
 
 
@@ -18,7 +17,7 @@ FINAL_EPSILON = 0.01
 EXPLORE_STEPS = 500000
 EPSILON_DECAY = (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE_STEPS
 
-OB_STEPS = 10000
+OB_STEPS = 5000
 MAX_MEMORY = 50000
 
 MAX_TEST_EPISODE = 100
@@ -27,7 +26,6 @@ MAX_TEST_EPISODE = 100
 def test_agent():
     env = BasicRetroEnv(game='SpaceInvaders-Atari2600')
     agent = DQNAgent(env.action_size, env.state_size, LEARNING_RATE, MAX_MEMORY, GAMMA, BATCH_SIZE)
-    monitor = Monitor()
 
     frame_index = agent.memory.register(env.reset())
 
@@ -63,8 +61,6 @@ def test_agent():
         next_frame, reward, done = env.step(action)
         next_frame_index = agent.memory.register(next_frame)
 
-        monitor.add(reward)
-
         agent.memory.append((frame_index, action, reward, next_frame_index, done))
 
         frame_index = next_frame_index
@@ -73,8 +69,6 @@ def test_agent():
 
         if done:
             episode += 1
-
-            monitor.show(step, episode, agent.selector.epsilon, args.test)
 
             frame_index = agent.memory.register(env.reset())
 
@@ -113,7 +107,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--test', action='store_true', default=False,
-                        help='test the performance of current net')
+                        help='test the performance of current agent')
     parser.add_argument('--figure', action='store_true', default=False,
                         help='show q value figure while testing')
     args = parser.parse_args()
