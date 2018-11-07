@@ -31,25 +31,34 @@ class DQNAgent():
 
         init_net(self.net, self.target_net)
 
-    def act(self, frame_index):
+    def act(self, frame_index=None):
+        if frame_index is None:
+            frame_index = self.memory.previous_frame_id
+
         state = self.memory.get(frame_index).reshape(-1, *self.state_size)
         state = torch.Tensor(state).to(self.device)
-        score = self.net(state)
-        action = self.selector.action(score)
+        qs = self.net(state)
+        action = self.selector.action(qs)
         return action
 
     def observe(self):
         return np.random.randint(self.action_size)
 
-    def update(self):
+    def update(self, step, episode):
         save_net(self.net)
         update_target(self.target_net)
+        self.monitor.show_stats(step, episode, self.selector.epsilon)
+
+    def memorize(self, data):
+        self.memory.memorize(data)
+        if isinstance(data, tuple):
+            self.monitor.add_reward(data[2])
 
     def get_all_qs(self, frame_index):
         state = self.memory.get(frame_index).reshape(-1, *self.state_size)
         state = torch.Tensor(state).to(self.device)
-        y = self.net(state)
-        return y.detach().cpu().numpy()
+        qs = self.net(state)
+        return qs.detach().cpu().numpy()
 
     def train(self):
         states, actions, rewards, next_states, dones = self.memory.sample(self.batch_size)

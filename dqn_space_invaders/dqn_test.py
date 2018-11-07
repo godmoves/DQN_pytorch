@@ -80,27 +80,23 @@ def test_agent():
 
 
 def main(args):
-    env = BasicRetroEnv(game='SpaceInvaders-Atari2600')
+    env = BasicRetroEnv(game='SpaceInvaders-Atari2600', stack_size=4)
     agent = DQNAgent(env.action_size, env.state_size, LEARNING_RATE, MAX_MEMORY, GAMMA, BATCH_SIZE)
 
-    frame_index = agent.memory.register(env.reset())
+    frame = env.reset()
+    agent.memorize(frame)
 
     episode = 0
     step = 0
     while True:
-        if step > OB_STEPS:
-            action = agent.act(frame_index)
-        else:
+        if step < OB_STEPS:
             action = agent.observe()
+        else:
+            action = agent.act()
 
         next_frame, reward, done = env.step(action)
-
-        next_frame_index = agent.memory.register(next_frame)
-        agent.monitor.add_reward(reward)
-        agent.memory.append((frame_index, action, reward, next_frame_index, done))
-
-        frame_index = next_frame_index
-
+        agent.memorize((frame, action, reward, next_frame, done))
+        frame = next_frame
         step += 1
 
         if step > OB_STEPS:
@@ -108,11 +104,10 @@ def main(args):
 
         if done:
             episode += 1
+            agent.update(step, episode)
 
-            agent.update()
-            agent.monitor.show_stats(step, episode, agent.selector.epsilon)
-
-            frame_index = agent.memory.register(env.reset())
+            frame = env.reset()
+            agent.memorize(frame)
 
 
 if __name__ == '__main__':

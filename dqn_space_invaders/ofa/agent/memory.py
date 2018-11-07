@@ -10,13 +10,25 @@ class BasicMemory():
     each frame and construct the state when we need it.
     '''
 
-    def __init__(self, max_memory):
+    def __init__(self, max_memory, stack_size=4):
         self.experience = deque(maxlen=max_memory)
         self.memory_dict = {}
 
         self.max_memory = max_memory
         self.index = 0
         self.full = False
+        self.stack_size = stack_size
+        self.previous_frame_id = 0
+
+    def memorize(self, data):
+        if isinstance(data, tuple):
+            next_frame_id = self.register(data[3])
+            # data[1] = self.previous_frame_id
+            # data[3] = next_frame_id
+            self.append((self.previous_frame_id, data[1], data[2], next_frame_id, data[4]))
+            self.previous_frame_id = next_frame_id
+        else:
+            self.previous_frame_id = self.register(data)
 
     def append(self, sarsd):
         self.experience.append(sarsd)
@@ -32,16 +44,15 @@ class BasicMemory():
 
     def get(self, index):
         index_list = self.get_index_list(index)
-        frame0 = self.memory_dict[index_list[0]]
-        frame1 = self.memory_dict[index_list[1]]
-        frame2 = self.memory_dict[index_list[2]]
-        frame3 = self.memory_dict[index_list[3]]
-        state = np.stack((frame0, frame1, frame2, frame3), axis=0)
+        frames = []
+        for i in range(self.stack_size):
+            frames.append(self.memory_dict[index_list[i]])
+        state = np.stack(frames, axis=0)
         return state
 
     def get_index_list(self, index):
         i_list = []
-        for i in range(4):
+        for i in range(self.stack_size):
             if index - i >= 0:
                 i_list.append(index - i)
             elif self.full:
