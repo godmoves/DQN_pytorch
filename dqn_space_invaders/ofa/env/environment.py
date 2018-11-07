@@ -4,7 +4,7 @@ from skimage.color import rgb2gray
 from skimage.transform import resize
 
 
-class Env():
+class BasicRetroEnv():
     def __init__(self, game, state=retro.State.DEFAULT, stack_size=4):
         self.env = retro.make(game=game, state=state)
         self.action_size = self.env.action_space.n

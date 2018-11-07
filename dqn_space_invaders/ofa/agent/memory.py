@@ -1,23 +1,25 @@
 import numpy as np
+import random
 
 from collections import deque
 
 
-class Memory():
+class BasicMemory():
     '''A lot of memory will be used if we save the whole frame due to the same
     frame is actually saved 4 times, so we choose to just save the index of
     each frame and construct the state when we need it.
     '''
 
     def __init__(self, max_memory):
-        self.sarsd_buffer = deque(maxlen=max_memory)
+        self.experience = deque(maxlen=max_memory)
         self.memory_dict = {}
+
         self.max_memory = max_memory
         self.index = 0
         self.full = False
 
     def append(self, sarsd):
-        self.sarsd_buffer.append(sarsd)
+        self.experience.append(sarsd)
 
     def register(self, frame):
         id_now = self.index
@@ -47,3 +49,14 @@ class Memory():
             else:
                 i_list.append(0)
         return i_list
+
+    def sample(self, batch_size):
+        minibatch = random.sample(self.experience, batch_size)
+
+        states = [self.get(d[0]) for d in minibatch]
+        actions = [d[1] for d in minibatch]
+        rewards = [d[2] for d in minibatch]
+        next_states = [self.get(d[3]) for d in minibatch]
+        dones = [d[4] for d in minibatch]
+
+        return states, actions, rewards, next_states, dones

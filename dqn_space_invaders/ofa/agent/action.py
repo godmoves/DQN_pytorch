@@ -1,6 +1,14 @@
 import numpy as np
 
 
+class RandomActionSelector():
+    def __init__(self, action_size):
+        self.action_size = action_size
+
+    def action(self):
+        return np.random.randint(self.action_size)
+
+
 class ArgmaxActionSelector():
     def __init__(self, action_size):
         self.action_size = action_size
